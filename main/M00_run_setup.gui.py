@@ -35,7 +35,7 @@ sys.dont_write_bytecode = True
 # Now that the path is set, we can import the GUI launcher from 'processes'
 # ====================================================================================================
 from processes.P00_set_packages import * # Imports all packages from P00_set_packages.py
-from processes.P05_gui_elements import ConnectionLauncher
+from processes.P05a_gui_elements_setup import ConnectionLauncher
 
 
 # ====================================================================================================
