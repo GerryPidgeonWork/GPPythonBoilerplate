@@ -1,5 +1,5 @@
 # ====================================================================================================
-# P05_gui_elements.py
+# P05a_gui_elements_setup.py
 # ----------------------------------------------------------------------------------------------------
 # Purpose:
 #   Provides the "Initial Connection Launcher" GUI for the project.
@@ -7,8 +7,7 @@
 # ----------------------------------------------------------------------------------------------------
 # Features:
 #   - Dynamically loads emails from 'P10_user_config.py' to create radio buttons.
-#   - **FIX**: Disables "Finish" button while Snowflake is in the process of connecting.
-#   - "Finish & Launch" button is enabled once GDrive method is set (Snowflake is optional).
+#   - Launches the main application window (P05b_gui_elements_main.py).
 # ----------------------------------------------------------------------------------------------------
 # Usage:
 #   1. Edit 'processes/P10_user_config.py' with your team's emails.
@@ -41,8 +40,8 @@ from processes.P08_snowflake_connector import connect_to_snowflake, SNOWFLAKE_EM
 from processes.P09_gdrive_api import get_drive_service
 from processes.P02_system_processes import detect_os
 
-# --- Import the Main Application Window ---
-from processes.P06_class_items import MainApplicationWindow
+# --- Import the Main Application Window (P05b) ---
+from processes.P05b_gui_elements_main import MainApplicationWindow # CORRECTED IMPORT HERE
 
 # --- Try to load the user config file ---
 try:
@@ -108,7 +107,7 @@ class ConnectionLauncher(tk.Tk):
         style.configure("TLabelframe", background="#f0f0f0", padding=10)
         style.configure("TLabelframe.Label", background="#f0f0f0", font=("Arial", 11, "bold"))
         style.configure("TRadiobutton", background="#f0f0f0")
-        style.configure("Path.TLabel", background="#f0f0f0", font=("Arial", 8, "italic"))
+        style.configure("Path.TLabel", font=("Arial", 8, "italic"))
 
         # --- Main Frame ---
         self.main_frame = ttk.Frame(self, padding="20 20 20 20")
@@ -221,27 +220,21 @@ class ConnectionLauncher(tk.Tk):
     # WIDGET COMMANDS & HELPERS
     # ==================================================
     
-    # --- *** THIS IS THE UPDATED FUNCTION *** ---
     def check_finish_button_state(self):
         """
         Enable the 'Finish' button only if all requirements are met.
         1. GDrive part must be ready.
         2. Snowflake part must NOT be in a "connecting" state.
         """
-        
-        # 1. Check GDrive status
         gdrive_ready = False
         if self.upload_method.get() == "api":
             gdrive_ready = (self.gdrive_service is not None)
         else: # "local"
             gdrive_ready = ("Path not set" not in self.local_gdrive_path.get())
             
-        # 2. Check Snowflake status
-        # We must ensure Snowflake is not in the *middle* of connecting.
         sf_status_text = self.sf_status.cget("text")
         sf_is_connecting = "Initializing" in sf_status_text or "Connecting" in sf_status_text
         
-        # 3. Enable button ONLY if GDrive is ready AND Snowflake is not busy.
         if gdrive_ready and not sf_is_connecting:
             self.finish_button.config(state=tk.NORMAL)
         else:
@@ -282,7 +275,6 @@ class ConnectionLauncher(tk.Tk):
 
     def run_snowflake_connection(self):
         """Called when the Snowflake button is clicked."""
-        # --- This function will now also call check_finish_button_state ---
         choice = self.email_choice.get()
         selected_email = ""
 
@@ -300,7 +292,6 @@ class ConnectionLauncher(tk.Tk):
         self.sf_button.config(state=tk.DISABLED)
         self.sf_status.config(text="Status: Initializing...", foreground="black")
         
-        # --- Disable Finish button *immediately* ---
         self.check_finish_button_state() 
         
         self.run_in_thread(
@@ -313,7 +304,6 @@ class ConnectionLauncher(tk.Tk):
         self.gdrive_api_button.config(state=tk.DISABLED)
         self.gdrive_api_status.config(text="Status: Initializing...", foreground="black")
         
-        # --- Disable Finish button *immediately* ---
         self.check_finish_button_state()
 
         self.run_in_thread(
@@ -326,6 +316,7 @@ class ConnectionLauncher(tk.Tk):
         print("Launcher: Hiding connection window.")
         self.withdraw() 
         
+        # *** THIS IS THE CORRECT LAUNCH LINE ***
         main_app = MainApplicationWindow(
             parent=self,
             snowflake_conn=self.snowflake_conn,

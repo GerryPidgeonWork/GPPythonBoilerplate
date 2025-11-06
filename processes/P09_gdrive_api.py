@@ -5,36 +5,7 @@
 #
 # Purpose:
 #   - Authenticate with the Google Drive API using OAuth 2.0.
-#   - Create a reusable 'service' object for making API calls.
-#   - Provide functions for listing, uploading, downloading, and finding files/folders.
-#
-# ----------------------------------------------------------------------------------------------------
-#   *** HOW TO USE ***
-#
-# 1. Install required libraries:
-#    (Handled by P00_set_packages.py)
-#
-# 2. Enable Google Drive API in Google Cloud Console:
-#    https://console.cloud.google.com/
-#
-# 3. Create OAuth 2.0 Credentials for a "Desktop app":
-#    - Go to "APIs & Services" -> "Credentials".
-#    - "+ CREATE CREDENTIALS" -> "OAuth client ID" -> "Desktop app".
-#    - Download the JSON file.
-#
-# 4. Rename the downloaded file to "credentials.json" and place it
-#    in the "credentials" folder (defined in P01_set_file_paths.py).
-#
-# 5. Run this script ONCE from your terminal to authenticate:
-#    python processes/P09_gdrive_api.py
-#
-# 6. Your web browser will open. Log in to your Google account and
-#    grant the script permission to access your Google Drive.
-#
-# 7. After you approve, a file named "token.json" will be saved
-#    in the "credentials" folder.
-#
-#    **NEVER SHARE token.json OR credentials.json!**
+#   - Provide functions for uploading files from local disk and from Pandas DataFrames (in memory).
 # ----------------------------------------------------------------------------------------------------
 # Author:       Gerry Pidgeon
 # Created:      2025-11-06
@@ -75,7 +46,6 @@ from processes.P02_system_processes import user_download_folder
 # 3. CONSTANTS AND SCOPES
 # ----------------------------------------------------------------------------------------------------
 # Define what permissions we are asking for.
-# We need full 'drive' access (not readonly) to upload and download files.
 SCOPES = ['https://www.googleapis.com/auth/drive']
 
 
@@ -91,7 +61,6 @@ def get_drive_service():
     specified by GDRIVE_TOKEN_FILE for future runs.
     """
     creds = None
-    # The file token.json stores the user's access and refresh tokens.
     if os.path.exists(GDRIVE_TOKEN_FILE):
         try:
             creds = Credentials.from_authorized_user_file(GDRIVE_TOKEN_FILE, SCOPES)
@@ -99,7 +68,6 @@ def get_drive_service():
             print(f"Error loading token.json: {e}. Re-authenticating...")
             creds = None
 
-    # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             try:
@@ -122,14 +90,12 @@ def get_drive_service():
                 print(f"Error during authentication flow: {e}")
                 return None
         
-        # Save the credentials for the next run
         try:
             with open(GDRIVE_TOKEN_FILE, 'w') as token:
                 token.write(creds.to_json())
         except Exception as e:
             print(f"Error saving token file: {e}")
 
-    # Build and return the service object
     try:
         service = build('drive', 'v3', credentials=creds)
         print("Google Drive API service created successfully.")
@@ -177,16 +143,7 @@ def list_drive_files(service, num_files=10):
 
 
 def find_folder_id(service, folder_name: str) -> str | None:
-    """
-    Finds the ID of a Google Drive folder by its name.
-    
-    Args:
-        service: The authenticated Google Drive service object.
-        folder_name (str): The exact name of the folder to find.
-
-    Returns:
-        str | None: The folder ID if found, otherwise None.
-    """
+    """Finds the ID of a Google Drive folder by its name."""
     if not service:
         print("Service object is not valid.")
         return None
@@ -194,9 +151,7 @@ def find_folder_id(service, folder_name: str) -> str | None:
     try:
         query = f"mimeType='application/vnd.google-apps.folder' and name='{folder_name}' and trashed=false"
         results = service.files().list(
-            q=query,
-            pageSize=1,
-            fields="files(id, name)"
+            q=query, pageSize=1, fields="files(id, name)"
         ).execute()
         
         items = results.get('files', [])
@@ -214,33 +169,18 @@ def find_folder_id(service, folder_name: str) -> str | None:
         return None
 
 def find_file_id(service, file_name: str, in_folder_id: str = None) -> str | None:
-    """
-    Finds the ID of a Google Drive file by its name.
-    
-    Args:
-        service: The authenticated Google Drive service object.
-        file_name (str): The exact name of the file to find.
-        in_folder_id (str, optional): The ID of a folder to search within.
-
-    Returns:
-        str | None: The file ID if found, otherwise None.
-    """
+    """Finds the ID of a Google Drive file by its name."""
     if not service:
         print("Service object is not valid.")
         return None
         
     try:
-        # Base query for file name and not a folder
         query = f"name='{file_name}' and mimeType!='application/vnd.google-apps.folder' and trashed=false"
-        
-        # Add folder condition if provided
         if in_folder_id:
             query += f" and '{in_folder_id}' in parents"
             
         results = service.files().list(
-            q=query,
-            pageSize=1,
-            fields="files(id, name)"
+            q=query, pageSize=1, fields="files(id, name)"
         ).execute()
         
         items = results.get('files', [])
@@ -265,17 +205,6 @@ def find_file_id(service, file_name: str, in_folder_id: str = None) -> str | Non
 def upload_file(service, local_filepath: Path, gdrive_folder_id: str = None, gdrive_filename: str = None) -> str | None:
     """
     Uploads a local file to Google Drive.
-
-    Args:
-        service: The authenticated Google Drive service object.
-        local_filepath (Path): The pathlib.Path object of the local file to upload.
-        gdrive_folder_id (str, optional): The ID of the Drive folder to upload into.
-                                          If None, uploads to root "My Drive".
-        gdrive_filename (str, optional): The name to save the file as in Google Drive.
-                                         If None, uses the local file's name.
-    
-    Returns:
-        str | None: The new Google Drive file ID if successful, otherwise None.
     """
     if not service:
         print("Service object is not valid.")
@@ -286,24 +215,16 @@ def upload_file(service, local_filepath: Path, gdrive_folder_id: str = None, gdr
         return None
         
     try:
-        # Set filename in Google Drive
         if gdrive_filename is None:
             gdrive_filename = local_filepath.name
 
         file_metadata = {'name': gdrive_filename}
-        
-        # Set parent folder if provided
         if gdrive_folder_id:
-            file_metadata['parents'] = [gdrive_for_id]
+            file_metadata['parents'] = [gdrive_folder_id]
 
-        # Create the media upload object
         media = MediaFileUpload(local_filepath, resumable=True)
-        
-        # Create the file and upload
         file = service.files().create(
-            body=file_metadata,
-            media_body=media,
-            fields='id'
+            body=file_metadata, media_body=media, fields='id'
         ).execute()
         
         file_id = file.get('id')
@@ -317,27 +238,72 @@ def upload_file(service, local_filepath: Path, gdrive_folder_id: str = None, gdr
         print(f'An unexpected error occurred during upload: {e}')
         return None
 
+def upload_dataframe_as_csv(service, csv_buffer: io.StringIO, filename: str, gdrive_folder_id: str = None) -> str | None:
+    """
+    Uploads a Pandas DataFrame (as CSV data in memory) to Google Drive.
+    
+    This function is used by the main GUI app to avoid saving temporary files.
+    
+    Args:
+        service: The authenticated Google Drive service object.
+        csv_buffer (io.StringIO): The CSV data buffer created from df.to_csv().
+        filename (str): The name to save the file as in Google Drive (must end in .csv).
+        gdrive_folder_id (str, optional): The ID of the Drive folder to upload into.
+    
+    Returns:
+        str | None: The new Google Drive file ID if successful, otherwise None.
+    """
+    if not service:
+        print("Service object is not valid.")
+        return None
+
+    try:
+        # Create an io.BytesIO object from the StringIO content
+        media_content = io.BytesIO(csv_buffer.getvalue().encode('utf-8'))
+        
+        file_metadata = {'name': filename}
+        if gdrive_folder_id:
+            file_metadata['parents'] = [gdrive_folder_id]
+
+        # Use MediaIoBaseUpload to stream the in-memory data
+        media = MediaIoBaseUpload(
+            media_content,
+            mimetype='text/csv',
+            chunksize=1024*1024, # 1MB chunk size
+            resumable=True
+        )
+        
+        file = service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id'
+        ).execute()
+        
+        file_id = file.get('id')
+        print(f"Report '{filename}' uploaded successfully to Drive (ID: {file_id})")
+        return file_id
+
+    except HttpError as error:
+        print(f'An API error occurred during upload: {error}')
+        return None
+    except Exception as e:
+        print(f'An unexpected error occurred during upload: {e}')
+        return None
+
 
 def download_file(service, gdrive_file_id: str, local_save_path: Path):
     """
     Downloads a file from Google Drive.
-
-    Args:
-        service: The authenticated Google Drive service object.
-        gdrive_file_id (str): The ID of the file to download.
-        local_save_path (Path): The full local path (incl. filename) to save the file.
     """
     if not service:
         print("Service object is not valid.")
         return
         
     try:
-        # Ensure the parent directory for the save path exists
         local_save_path.parent.mkdir(parents=True, exist_ok=True)
 
         request = service.files().get_media(fileId=gdrive_file_id)
         
-        # Use io.BytesIO to hold the file in memory
         fh = io.BytesIO()
         downloader = MediaIoBaseDownload(fh, request)
         
@@ -347,7 +313,6 @@ def download_file(service, gdrive_file_id: str, local_save_path: Path):
             status, done = downloader.next_chunk()
             print(f"Download {int(status.progress() * 100)}%.")
             
-        # Once done, write the in-memory file to disk
         with open(local_save_path, 'wb') as f:
             f.write(fh.getbuffer())
             
@@ -364,65 +329,10 @@ def download_file(service, gdrive_file_id: str, local_save_path: Path):
 # 7. MAIN EXECUTION (STANDALONE TEST)
 # ----------------------------------------------------------------------------------------------------
 if __name__ == '__main__':
-    # 1. Authenticate
+    # This is placeholder code for testing the API functions outside the GUI.
+    # It requires credentials/credentials.json to be present.
+    print("--- Running P09 Standalone Test (Authentication only) ---")
     drive_service = get_drive_service()
     
     if drive_service:
-        print("\n" + "="*50)
-        print("--- TEST 1: LISTING FILES ---")
-        print("="*50)
-        list_drive_files(drive_service, 5) # Test the list function
-
-        # --- UPLOAD/DOWNLOAD TEST ---
-        # We will create a dummy test file, upload it, then download it
-        # to your OS's Downloads folder.
-        
-        print("\n" + "="*50)
-        print("--- TEST 2: UPLOAD & DOWNLOAD ---")
-        print("="*50)
-        
-        # 2. Define test file paths
-        test_file_name = "gdrive_api_test.txt"
-        local_upload_path = PROJECT_ROOT / test_file_name
-        local_download_path = user_download_folder() / f"downloaded_{test_file_name}"
-        
-        # 3. Create a local dummy file
-        try:
-            print(f"Creating local test file at: {local_upload_path}")
-            with open(local_upload_path, 'w') as f:
-                f.write("Hello from the GDrive API script!\n")
-                f.write(f"Timestamp: {dt.datetime.now()}")
-            
-            # 4. Upload the file (to root 'My Drive')
-            print("\nAttempting to upload file...")
-            uploaded_file_id = upload_file(drive_service, local_upload_path)
-            
-            if uploaded_file_id:
-                
-                # 5. Download the file
-                print("\nAttempting to download the file...")
-                download_file(drive_service, uploaded_file_id, local_download_path)
-                
-                # 6. Clean up (optional: delete the test file from Drive)
-                try:
-                    print(f"\nCleaning up: Deleting '{test_file_name}' from Google Drive.")
-                    drive_service.files().delete(fileId=uploaded_file_id).execute()
-                    print("Cleanup successful.")
-                except HttpError as e:
-                    print(f"Error cleaning up file: {e}")
-
-            # 7. Clean up local test file
-            if local_upload_path.exists():
-                print(f"Cleaning up: Deleting local file '{local_upload_path}'")
-                os.remove(local_upload_path)
-            
-            print("\n" + "="*50)
-            print("--- TEST COMPLETE ---")
-            print("="*50)
-            print(f"Check your Downloads folder for '{local_download_path.name}'!")
-
-        except Exception as e:
-            print(f"An error occurred during the upload/download test: {e}")
-            # Clean up local file if it exists
-            if local_upload_path.exists():
-                os.remove(local_upload_path)
+        list_drive_files(drive_service, 5)
