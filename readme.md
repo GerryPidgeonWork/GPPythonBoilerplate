@@ -1,120 +1,146 @@
-🚀 Python GUI Boilerplate (Snowflake & Google Drive)
+# 🚀 Python GUI Boilerplate (Snowflake & Google Drive)
 
-This project provides a robust, reusable boilerplate for building Python GUI applications that require authentication and connection management for Snowflake (via Okta SSO) and Google Drive (via API or local mapped drive).
+A **modern, reusable Python GUI boilerplate** for applications that require authentication and connection management for **Snowflake** (via Okta SSO) and **Google Drive** (via API or local mapped drive).
 
-It uses a Launcher pattern to handle all authentication up-front, passing live connection objects to the main application for immediate use.
+This framework uses a **Launcher pattern** to handle authentication up-front, passing live connection objects to the main app for immediate use — making it ideal for data, finance, or automation tools.
 
-Key Features
+---
 
-Authentication & Connections
+## 🌟 Key Features
 
-Snowflake Connector (P08):
+### 🔐 Authentication & Connections
 
-Connects using Okta SSO (externalbrowser).
+**Snowflake Connector (P08)**
 
-Automatically finds and sets the best available Role/Warehouse for the user based on a priority list.
+* Connects securely using **Okta SSO (externalbrowser)**.
+* Automatically selects the best Role/Warehouse based on a configurable priority list.
 
-Google Drive Connector (P09):
+**Google Drive Connector (P09)**
 
-Provides two methods for file operations, selectable in the GUI:
+* Two file access modes available:
 
-Local Mapped Drive: (Default) Lets the user browse and select their local shared folder (e.g., H:\).
+  * **Local Mapped Drive (Default):** Browse your shared folder (e.g., `H:\`).
+  * **API Method:** Directly connects via the Google Drive API.
 
-API Method: Connects directly to the Google Drive API.
+**Launcher GUI (P05)**
 
-Launcher GUI (P05):
+* Dynamically builds email selection radio buttons from config.
+* Uses **threading** to prevent GUI freezing during authentication.
 
-Dynamically builds email radio buttons from the configuration file (P10).
+**Configurable (P10)**
 
-Uses background threading to ensure the GUI never freezes during network operations.
+* Simple onboarding — just edit `processes/P10_user_config.py` to add your team’s emails.
 
-Configurable (P10):
+---
 
-User-friendly setup: A new user just edits processes/P10_user_config.py to add their team's emails.
+## 🧩 Project Structure
 
-Project Structure
-
+```
 GPPythonBoilerplate/
 │
-├── .venv/                  # Python Virtual Environment
+├── .venv/                        # Python Virtual Environment
 │
-├── credentials/            # Google API/OAuth Files
-│   └── credentials.json    # Google API Key (Must be added manually)
+├── credentials/                  # Google API / OAuth Credentials
+│   └── credentials.json          # (User-supplied API key)
 │
 ├── main/
-│   └── M00_run_setup.gui.py # *** MAIN ENTRY POINT ***
+│   └── M00_run_setup.gui.py      # 🚀 MAIN ENTRY POINT
 │
 └── processes/
-    ├── P00_set_packages.py        # Central place for all module imports
-    ├── P05_gui_elements.py        # The "Launcher" GUI window
-    ├── P06_class_items.py         # The "Main App" window (Placeholder)
-    ├── P08_snowflake_connector.py # Snowflake/Okta connection logic
+    ├── P00_set_packages.py        # Central import hub (all modules)
+    ├── P05_gui_elements.py        # Launcher GUI window
+    ├── P06_class_items.py         # Main App window (placeholder)
+    ├── P08_snowflake_connector.py # Snowflake / Okta connection logic
     ├── P09_gdrive_api.py          # Google Drive API connection logic
-    └── P10_user_config.py       # User-editable email list
+    └── P10_user_config.py         # User-editable email configuration
+```
 
+---
 
-1. Setup & Configuration
+## ⚙️ Setup & Configuration
 
-Step 1: Install Python Packages
+### 🧰 Step 1 – Install Python Packages
 
-If a requirements.txt file exists, use it:
+If a `requirements.txt` exists:
 
+```bash
 pip install -r requirements.txt
+```
 
+Or install manually:
 
-If not, manually create the list:
-
+```bash
 pip install pandas snowflake-connector-python google-api-python-client google-auth-httplib2 google-auth-oauthlib
+```
 
+---
 
-Step 2: Configure User Emails
+### 📧 Step 2 – Configure User Emails
 
-Open processes/P10_user_config.py.
+Edit the config file `processes/P10_user_config.py` and add your team’s common emails:
 
-Fill in your team's common emails in the EMAIL_SLOT variables. Any slot left blank will be ignored by the GUI.
-
-# processes/P10_user_config.py
-
+```python
 # --- REQUIRED: Fill in your team's common emails ---
-EMAIL_SLOT_1 = "gerry.pidgeon@gopuff.com"
-EMAIL_SLOT_2 = "dimitrios.kakkavas@gopuff.com"
+EMAIL_SLOT_1 = "firstname.lastname@gopuff.com"
+EMAIL_SLOT_2 = ""
 # ...
+```
 
+Any blank slot will be ignored by the launcher.
 
-Step 3: (Optional) Google Drive API Credentials
+---
 
-If you plan to use the API method, you need your credentials.
+### 🔑 Step 3 – (Optional) Google Drive API Credentials
 
-Go to the Google Cloud Console.
+To use the **API method** instead of a mapped drive:
 
-Enable the "Google Drive API".
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Enable **Google Drive API**
+3. Create an **OAuth client ID** (type: *Desktop app*)
+4. Download the credentials JSON file
+5. Rename it to `credentials.json` and place it in the `credentials/` folder
 
-Create an OAuth client ID of type "Desktop app".
+---
 
-Download the JSON file, rename it to credentials.json, and place it in the project's credentials/ folder.
+## ▶️ How to Run
 
-2. How to Run
+1. Open a terminal in the project root (e.g., `GPPythonBoilerplate/`)
+2. Activate your virtual environment:
 
-Navigate to the project's root folder (e.g., GPPythonBoilerplate/).
+   ```bash
+   .\.venv\Scripts\Activate.ps1
+   ```
+3. Launch the main app:
 
-Activate your virtual environment (e.g., .\.venv\Scripts\Activate.ps1).
+   ```bash
+   python main/M00_run_setup.gui.py
+   ```
 
-Run the main entry point:
+The **Launcher Window** will open — use it to authenticate to Snowflake and/or Google Drive.
 
-python main/M00_run_setup.gui.py
+---
 
+## 🏗️ Building a Windows Executable (.exe)
 
-Use the launcher window to set your connections.
+To distribute the app as a single `.exe` file:
 
-3. Building an Executable (.exe)
+1. Install PyInstaller:
 
-To create a single executable file for Windows users, use PyInstaller.
+   ```bash
+   pip install pyinstaller
+   ```
+2. Run the build command:
 
-Ensure PyInstaller is installed (pip install pyinstaller).
+   ```bash
+   pyinstaller --onefile --name "GopuffApp" --add-data "credentials;credentials" main/M00_run_setup.gui.py
+   ```
 
-Run the following command from the root directory:
+Your compiled app will be created in the `/dist` folder as `GopuffApp.exe`.
 
-pyinstaller --onefile --name "GopuffApp" --add-data "credentials;credentials" main/M00_run_setup.gui.py
+---
 
+## 👤 Author
 
-Your final GopuffApp.exe file will be in the new dist/ folder.
+**Gerry Pidgeon**
+Created: November 2025
+Project: *Python GUI Boilerplate (Snowflake & Google Drive)*
