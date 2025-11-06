@@ -39,7 +39,7 @@ sys.dont_write_bytecode = True  # Prevents __pycache__ folders from being create
 # ====================================================================================================
 
 # --- REQUIRED: Fill in at least one email ---
-EMAIL_SLOT_1 = "gerry.pidgeon@gopuff.com"
+EMAIL_SLOT_1 = "firstname.lastname@gopuff.com"
 EMAIL_SLOT_2 = ""
 EMAIL_SLOT_3 = ""
 EMAIL_SLOT_4 = ""
