@@ -36,9 +36,10 @@ sys.dont_write_bytecode = True  # Prevents __pycache__ folders from being create
 from processes.P00_set_packages import * # Imports all packages from P00_set_packages.py
 
 # --- Import App-specific functions ---
+from processes.P01_set_file_paths import initialise_provider_paths
+from processes.P02_system_processes import detect_os
 from processes.P08_snowflake_connector import connect_to_snowflake, SNOWFLAKE_EMAIL_DOMAIN
 from processes.P09_gdrive_api import get_drive_service
-from processes.P02_system_processes import detect_os
 
 # --- Import the Main Application Window (P05b) ---
 from processes.P05b_gui_elements_main import DWHOrdersToCashGUI
@@ -312,17 +313,24 @@ class ConnectionLauncher(tk.Tk):
         )
     
     def launch_main_app(self):
-        """Hide this window and launch the main application."""
-        print("Launcher: Hiding connection window.")
-        self.withdraw() 
-        
-        # *** THIS IS THE CORRECT LAUNCH LINE ***
-        main_app = DWHOrdersToCashGUI( # <<< Use the new class name here
-        parent=self,
-        snowflake_conn=self.snowflake_conn,
-        gdrive_service=self.gdrive_service,
-        upload_method=self.upload_method.get(),
-        local_path=self.local_gdrive_path.get())
+        # 1. tell P01 what drive/folder the user picked
+        if self.upload_method.get() == "local":
+            initialise_provider_paths(self.local_gdrive_path.get())
+        else:
+            # if you ever support API-based path roots, you could map differently here
+            pass
+
+        # 2. hide this window
+        self.withdraw()
+
+        # 3. launch main GUI and pass objects around
+        main_app = DWHOrdersToCashGUI(
+            parent=self,
+            snowflake_conn=self.snowflake_conn,
+            gdrive_service=self.gdrive_service,
+            upload_method=self.upload_method.get(),
+            local_path=self.local_gdrive_path.get()
+        )
         print("Launcher: MainApplicationWindow is now running.")
 
 

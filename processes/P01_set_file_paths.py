@@ -193,16 +193,29 @@ def initialise_provider_paths(selected_root: str | Path | None = None):
         SHARED_DRIVE_ROOT = Path("<Drive not yet selected>")
         print("⚠️  No drive selected — paths will show placeholder text until GUI sets the drive.")
     else:
-        SHARED_DRIVE_ROOT = Path(selected_root)
-        if not SHARED_DRIVE_ROOT.exists():
-            print(f"⚠️  Warning: {selected_root} does not exist. Using placeholder paths.")
+        selected_path = Path(selected_root).resolve()
 
-    # Build placeholder or real paths
+        # ✅ Normalise if user selected 'H:\\Shared drives' or deeper
+        if selected_path.parts[-1].lower() == "shared drives":
+            shared_drive_root = selected_path.drive + "\\"
+        elif any(p.lower() == "shared drives" for p in selected_path.parts):
+            shared_drive_root = selected_path.drive + "\\"
+        else:
+            shared_drive_root = str(selected_path)
+
+        SHARED_DRIVE_ROOT = Path(shared_drive_root)
+        if not SHARED_DRIVE_ROOT.exists():
+            print(f"⚠️  Warning: {shared_drive_root} does not exist. Using placeholder paths.")
+        else:
+            print(f"✅ Normalized shared drive root: {SHARED_DRIVE_ROOT}")
+
+    # --- Build full provider dictionary ---
     ALL_PROVIDER_PATHS = {
         key: build_provider_paths(SHARED_DRIVE_ROOT, key)
         for key in PROVIDER_SUBPATHS.keys()
     }
 
+    # --- Create shorthand references ---
     braintree_paths = ALL_PROVIDER_PATHS["braintree"]
     paypal_paths    = ALL_PROVIDER_PATHS["paypal"]
     uber_paths      = ALL_PROVIDER_PATHS["uber"]
