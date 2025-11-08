@@ -1,8 +1,9 @@
-# 🚀 Python GUI Boilerplate (Snowflake & Google Drive)
+# 🚀 GP Python Boilerplate (Universal GUI Framework)
 
-A **modern, reusable Python GUI boilerplate** for applications that require authentication and connection management for **Snowflake** (via Okta SSO) and **Google Drive** (via API or local mapped drive).
+A **modular, locked-core Python GUI boilerplate** designed for projects that require **Snowflake authentication (Okta SSO)** and **Google Drive integration (API or local mapped drive)**.
+It provides a fully reusable launcher workflow and structured layering — separating *locked shared components* from *project-specific logic*.
 
-This framework uses a **Launcher pattern** to handle authentication up-front, passing live connection objects to the main app for immediate use — making it ideal for data, finance, or automation tools.
+This framework lets you spin up new finance, analytics, or automation tools rapidly — each with its own GUI — all built on the same stable foundation.
 
 ---
 
@@ -12,56 +13,66 @@ This framework uses a **Launcher pattern** to handle authentication up-front, pa
 
 **Snowflake Connector (P08)**
 
-* Connects securely using **Okta SSO (externalbrowser)**.
-* Automatically selects the best Role/Warehouse based on a configurable priority list.
+* Securely connects using **Okta SSO (externalbrowser)**.
+* Automatically sets the best role/warehouse based on a configurable priority list.
+* Reuses authenticated sessions when possible.
 
 **Google Drive Connector (P09)**
 
-* Two file access modes available:
+* Supports **two methods**:
 
-  * **Local Mapped Drive (Default):** Browse your shared folder (e.g., `H:\`).
-  * **API Method:** Directly connects via the Google Drive API.
+  * 🖥️ **Local mapped drive** (default): Choose your local `H:\` or equivalent shared path.
+  * ☁️ **API mode:** Uses Google Drive API with OAuth credentials for direct access.
 
-**Launcher GUI (P05)**
+**Universal Launcher (P05a)**
 
-* Dynamically builds email selection radio buttons from config.
-* Uses **threading** to prevent GUI freezing during authentication.
+* Thread-safe, responsive GUI for connection setup.
+* Dynamically loads user emails from `P10_user_config.py`.
+* Passes live connection objects (Snowflake + Drive) into the project’s GUI.
 
-**Configurable (P10)**
+**Locked Core (P05b)**
 
-* Simple onboarding — just edit `processes/P10_user_config.py` to add your team’s emails.
+* Provides consistent GUI layout, styling, and lifecycle management for all projects.
+* Ensures unified window structure and “Close Application” handling.
 
 ---
 
-## 🧩 Project Structure
+## 🧩 Folder & Module Structure
 
 ```
 GPPythonBoilerplate/
 │
-├── .venv/                        # Python Virtual Environment
-│
-├── credentials/                  # Google API / OAuth Credentials
-│   └── credentials.json          # (User-supplied API key)
-│
 ├── main/
-│   └── M00_run_setup.gui.py      # 🚀 MAIN ENTRY POINT
+│   ├── M00_run_gui.py               # 🚀 Main entry point (starts universal launcher)
+│   └── M01_load_project_config.py   # Loads provider setup & routes to project launcher
 │
-└── processes/
-    ├── P00_set_packages.py        # Central import hub (all modules)
-    ├── P05_gui_elements.py        # Launcher GUI window
-    ├── P06_class_items.py         # Main App window (placeholder)
-    ├── P08_snowflake_connector.py # Snowflake / Okta connection logic
-    ├── P09_gdrive_api.py          # Google Drive API connection logic
-    └── P10_user_config.py         # User-editable email configuration
+├── implementation/
+│   ├── I01_project_launcher.py      # Project bridge — imports and launches GUI
+│   └── I02_gui_elements_main.py     # Project-specific GUI (inherits from BaseMainGUI)
+│
+├── processes/                       # 🔒 Locked, reusable core modules
+│   ├── P00_set_packages.py          # Central import hub (tkinter, pandas, etc.)
+│   ├── P01_set_file_paths.py        # Provider path initialisation (shared drive / GDrive)
+│   ├── P02_system_processes.py      # OS detection, path helpers
+│   ├── P05a_gui_elements_setup.py   # Universal connection launcher GUI
+│   ├── P05b_gui_elements_main.py    # Locked base GUI (structure, styling, lifecycle)
+│   ├── P08_snowflake_connector.py   # Handles Snowflake Okta login + role assignment
+│   ├── P09_gdrive_api.py            # Google Drive API service builder
+│   └── P10_user_config.py           # User-editable file (email slots, defaults)
+│
+├── credentials/                     # (Optional) Google API OAuth credentials
+│   └── credentials.json
+│
+└── .venv/                           # Local virtual environment
 ```
 
 ---
 
 ## ⚙️ Setup & Configuration
 
-### 🧰 Step 1 – Install Python Packages
+### 🧰 Step 1 – Install Dependencies
 
-If a `requirements.txt` exists:
+If a `requirements.txt` is provided:
 
 ```bash
 pip install -r requirements.txt
@@ -77,65 +88,114 @@ pip install pandas snowflake-connector-python google-api-python-client google-au
 
 ### 📧 Step 2 – Configure User Emails
 
-Edit the config file `processes/P10_user_config.py` and add your team’s common emails:
+Edit the config file `processes/P10_user_config.py` and add your team’s emails:
 
 ```python
-# --- REQUIRED: Fill in your team's common emails ---
 EMAIL_SLOT_1 = "firstname.lastname@gopuff.com"
 EMAIL_SLOT_2 = ""
-# ...
 ```
 
-Any blank slot will be ignored by the launcher.
+Any blank or placeholder entry will be ignored.
 
 ---
 
-### 🔑 Step 3 – (Optional) Google Drive API Credentials
+### 🔑 Step 3 – (Optional) Google Drive API Setup
 
-To use the **API method** instead of a mapped drive:
+If using the **API method** instead of a mapped drive:
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+1. Visit [Google Cloud Console](https://console.cloud.google.com/)
 2. Enable **Google Drive API**
-3. Create an **OAuth client ID** (type: *Desktop app*)
-4. Download the credentials JSON file
-5. Rename it to `credentials.json` and place it in the `credentials/` folder
+3. Create an **OAuth client ID** (type: Desktop App)
+4. Download and rename credentials as `credentials.json`
+5. Place it in the `/credentials/` folder
 
 ---
 
-## ▶️ How to Run
+## ▶️ Running the Application
 
-1. Open a terminal in the project root (e.g., `GPPythonBoilerplate/`)
+1. Open the terminal in your project root:
+
+   ```bash
+   cd GPPythonBoilerplate
+   ```
 2. Activate your virtual environment:
 
    ```bash
    .\.venv\Scripts\Activate.ps1
    ```
-3. Launch the main app:
+3. Launch the app:
 
    ```bash
-   python main/M00_run_setup.gui.py
+   python main/M00_run_gui.py
    ```
 
-The **Launcher Window** will open — use it to authenticate to Snowflake and/or Google Drive.
+🪟 The **Launcher Window** opens. Use it to:
+
+* Authenticate to **Snowflake** (Okta browser flow)
+* Connect to **Google Drive** (via API or mapped path)
+* Launch your project GUI automatically
+
+---
+
+## 🧠 Building New Projects
+
+You can clone this boilerplate to create new, independent applications while reusing the same locked core.
+
+### 🪄 Step-by-Step
+
+1. **Duplicate this repository** and rename it (e.g., `InvoiceProcessor`, `FinanceReconciler`)
+2. Inside `/implementation/`, replace the placeholder files:
+
+   * `I01_project_launcher.py` → import your own GUI or workflow
+   * `I02_gui_elements_main.py` → define your own subclass of `BaseMainGUI`
+3. (Optional) Update metadata in `main/M01_load_project_config.py`
+4. Run your new project via `M00_run_gui.py`
+
+### Example
+
+```python
+# In I02_gui_elements_main.py
+from processes.P05b_gui_elements_main import BaseMainGUI
+
+class MyNewAppGUI(BaseMainGUI):
+    def build_gui(self):
+        ttk.Label(self.main_frame, text="Welcome to My Custom App", font=("Arial", 14, "bold")).pack(pady=20)
+        ttk.Button(self.main_frame, text="Run Report", command=self.run_report).pack(pady=10)
+
+    def run_report(self):
+        print("Running my project-specific logic...")
+```
+
+Now your app uses the same secure launcher, styling, and environment setup — but with your own GUI logic.
 
 ---
 
 ## 🏗️ Building a Windows Executable (.exe)
 
-To distribute the app as a single `.exe` file:
+To distribute the app as a single binary:
 
-1. Install PyInstaller:
+```bash
+pip install pyinstaller
+pyinstaller --onefile --name "MyApp" --add-data "credentials;credentials" main/M00_run_gui.py
+```
 
-   ```bash
-   pip install pyinstaller
-   ```
-2. Run the build command:
+Your executable will appear in `/dist/MyApp.exe`.
 
-   ```bash
-   pyinstaller --onefile --name "GopuffApp" --add-data "credentials;credentials" main/M00_run_setup.gui.py
-   ```
+---
 
-Your compiled app will be created in the `/dist` folder as `GopuffApp.exe`.
+## 🧭 Architecture Overview
+
+```
+M00_run_gui.py
+  └── starts → P05a_gui_elements_setup.ConnectionLauncher
+        └── after setup calls → M01_load_project_config.launch_project_main()
+              └── imports → implementation/I01_project_launcher.launch_main_app()
+                    └── instantiates → implementation/I02_gui_elements_main.MainProjectGUI()
+```
+
+* 🔒 **P05a / P05b:** Universal locked core
+* 🧩 **I01 / I02:** Project layer (safe to edit)
+* 🚀 **M00 / M01:** Entry points + runtime config
 
 ---
 
@@ -143,4 +203,4 @@ Your compiled app will be created in the `/dist` folder as `GopuffApp.exe`.
 
 **Gerry Pidgeon**
 Created: November 2025
-Project: *Python GUI Boilerplate (Snowflake & Google Drive)*
+Project: *GP Python Boilerplate (Snowflake & Google Drive)*

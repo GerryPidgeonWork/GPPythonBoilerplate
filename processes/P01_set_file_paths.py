@@ -163,7 +163,6 @@ def build_provider_paths(shared_root: Path, provider_key: str) -> Dict[str, Path
 
     return all_paths
 
-
 # --- 6f. Master Dictionary for All Providers ---
 # This dictionary will be rebuilt dynamically once the GUI sets SHARED_DRIVE_ROOT.
 ALL_PROVIDER_PATHS: Dict[str, Dict[str, Path]] = {}
@@ -178,13 +177,15 @@ amazon_paths: Dict[str, Path]    = {}
 
 
 # --- 6h. Initialisation Helper ---
-def initialise_provider_paths(selected_root: str | Path | None = None):
+def initialise_provider_paths(selected_root: str | Path | None = None) -> Dict[str, Dict[str, Path]]:
     """
-    Called by the Initial GUI (P05a) once the user selects the shared drive path.
-    Dynamically rebuilds all provider folder dictionaries.
+    Initializes all provider folder dictionaries.
 
-    Example:
-        initialise_provider_paths("H:/")
+    Parameters:
+        selected_root (str | Path | None): The base shared drive root (e.g. 'H:/')
+
+    Returns:
+        Dict[str, Dict[str, Path]]: Master dictionary containing all provider path maps.
     """
     global SHARED_DRIVE_ROOT, ALL_PROVIDER_PATHS
     global braintree_paths, paypal_paths, uber_paths, deliveroo_paths, justeat_paths, amazon_paths
@@ -215,23 +216,68 @@ def initialise_provider_paths(selected_root: str | Path | None = None):
         for key in PROVIDER_SUBPATHS.keys()
     }
 
-    # --- Create shorthand references ---
-    braintree_paths = ALL_PROVIDER_PATHS["braintree"]
-    paypal_paths    = ALL_PROVIDER_PATHS["paypal"]
-    uber_paths      = ALL_PROVIDER_PATHS["uber"]
-    deliveroo_paths = ALL_PROVIDER_PATHS["deliveroo"]
-    justeat_paths   = ALL_PROVIDER_PATHS["justeat"]
-    amazon_paths    = ALL_PROVIDER_PATHS["amazon"]
+    # --- Create shorthand references (legacy compatibility) ---
+    braintree_paths = ALL_PROVIDER_PATHS.get("braintree", {})
+    paypal_paths    = ALL_PROVIDER_PATHS.get("paypal", {})
+    uber_paths      = ALL_PROVIDER_PATHS.get("uber", {})
+    deliveroo_paths = ALL_PROVIDER_PATHS.get("deliveroo", {})
+    justeat_paths   = ALL_PROVIDER_PATHS.get("justeat", {})
+    amazon_paths    = ALL_PROVIDER_PATHS.get("amazon", {})
+
+    # ✅ Return for functional usage
+    return ALL_PROVIDER_PATHS
+
 
 # ====================================================================================================
-# 7. MAIN EXECUTION (STANDALONE TEST)
+# 7. HELPER FUNCTIONS
+# ----------------------------------------------------------------------------------------------------
+def get_provider_paths(provider_key: str) -> Dict[str, Path]:
+    """
+    Returns the full folder dictionary for a single provider.
+
+    Example:
+        >>> get_provider_paths("justeat")["02_pdfs_01_to_process"]
+    """
+    if provider_key not in ALL_PROVIDER_PATHS:
+        raise KeyError(f"Provider '{provider_key}' not initialized.")
+    return ALL_PROVIDER_PATHS[provider_key]
+
+
+def get_folder_across_providers(folder_key: str) -> Dict[str, Path]:
+    """
+    Returns a dictionary of the same folder (e.g., '03_dwh') across all providers.
+
+    Example:
+        >>> get_folder_across_providers("03_dwh")
+        {
+            'braintree': Path('H:/.../01 Braintree/03 DWH'),
+            'paypal':    Path('H:/.../02 Paypal/03 DWH'),
+            ...
+        }
+    """
+    if not ALL_PROVIDER_PATHS:
+        raise RuntimeError("Provider paths not initialized. Call initialise_provider_paths() first.")
+
+    results = {}
+    for provider, paths in ALL_PROVIDER_PATHS.items():
+        if folder_key in paths:
+            results[provider] = paths[folder_key]
+    return results
+
+# ====================================================================================================
+# 8. MAIN EXECUTION (STANDALONE TEST)
 # ----------------------------------------------------------------------------------------------------
 if __name__ == "__main__":
     print(f"Project Root: {PROJECT_ROOT}")
-    print("\n--- Dynamic Path Test (no drive selected) ---")
+    print("\n--- Dynamic Path Test (H:/) ---")
 
-    initialise_provider_paths(None)
+    all_paths = initialise_provider_paths("H:/")
 
-    print("\nDeliveroo Folder Map:\n")
-    for key, path in deliveroo_paths.items():
-        print(f"{key.ljust(30)} : {path}")
+    print("\n✅ Available providers:", list(all_paths.keys()))
+    print("\nSample provider map (Deliveroo):")
+    for key, path in all_paths["deliveroo"].items():
+        print(f"{key.ljust(35)} : {path}")
+
+    print("\nSample cross-provider folder (03 DWH):")
+    for prov, path in get_folder_across_providers("03_dwh").items():
+        print(f"{prov.ljust(15)} : {path}")

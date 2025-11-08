@@ -53,6 +53,7 @@ import contextlib                                                           # Ma
 import datetime as dt                                                       # Shortcut alias for datetime module (used as dt.date / dt.datetime)
 import calendar                                                             # Calendar operations (e.g., month ranges, weekday checks)
 from typing import Dict, List, Tuple, Optional, Any                         # Standard type hints used across the project
+from datetime import date, timedelta                                        # Commonly used date utilities
 
 # --- GUI-SPECIFIC IMPORTS ---
 import tkinter as tk                                                        # Standard Python GUI toolkit
@@ -83,6 +84,7 @@ from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload       # Ha
 import pandas as pd                                                         # (pip install pandas) Data analysis and manipulation
 import numpy as np                                                          # (installed with pandas) Numerical arrays, fast math ops
 import snowflake.connector                                                  # (pip install snowflake-connector-python) Run SQL in Snowflake
+from tkcalendar import DateEntry                                            # (pip install tkcalendar) for date selection widgets in GUIs
 
 # ====================================================================================================
 # 5. LOGGING CONFIGURATION

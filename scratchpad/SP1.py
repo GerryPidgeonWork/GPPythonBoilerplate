@@ -23,7 +23,7 @@ sys.dont_write_bytecode = True
 from processes.P00_set_packages import *
 from processes import P01_set_file_paths as p01
 from processes import P05a_gui_elements_setup as p05a
-from processes import P05b_gui_elements_main as p05b  # original main GUI (we'll still import it)
+from implementation import I02_gui_elements_main as p05b  # original main GUI (we'll still import it)
 
 
 # ----------------------------------------------------------------------------------------------------

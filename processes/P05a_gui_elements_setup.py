@@ -2,16 +2,17 @@
 # P05a_gui_elements_setup.py
 # ----------------------------------------------------------------------------------------------------
 # Purpose:
-#   Provides the "Initial Connection Launcher" GUI for the project.
-#   This script acts as a "Login Window".
+#   Provides the universal "Initial Connection Launcher" GUI.
+#   This script is fully locked and shared across all projects.
 # ----------------------------------------------------------------------------------------------------
 # Features:
 #   - Dynamically loads emails from 'P10_user_config.py' to create radio buttons.
-#   - Launches the main application window (P05b_gui_elements_main.py).
+#   - Calls an external launch callback supplied by the top-level script.
 # ----------------------------------------------------------------------------------------------------
 # Usage:
 #   1. Edit 'processes/P10_user_config.py' with your team's emails.
 #   2. Run this script via 'main/M00_run_setup.gui.py'
+#   3. Do not modify this file — project logic connects via the callback.
 # ====================================================================================================
 
 
@@ -41,9 +42,6 @@ from processes.P02_system_processes import detect_os
 from processes.P08_snowflake_connector import connect_to_snowflake, SNOWFLAKE_EMAIL_DOMAIN
 from processes.P09_gdrive_api import get_drive_service
 
-# --- Import the Main Application Window (P05b) ---
-from processes.P05b_gui_elements_main import DWHOrdersToCashGUI
-
 # --- Try to load the user config file ---
 try:
     from processes.P10_user_config import (
@@ -67,12 +65,13 @@ except ImportError:
 # 3. MAIN APPLICATION CLASS (CONNECTION LAUNCHER)
 # ----------------------------------------------------------------------------------------------------
 class ConnectionLauncher(tk.Tk):
-    """
-    This class is the "Login Window" or "Launcher".
-    Its job is to get connections and then launch the MainApplicationWindow.
-    """
-    def __init__(self):
+    def __init__(self, on_launch_callback=None):
+        """
+        Locked, generic launcher GUI that sets up Snowflake and Google Drive/local connections.
+        Project-specific behaviour is injected via `on_launch_callback` from the top-level runner.
+        """
         super().__init__()
+        self.on_launch_callback = on_launch_callback
 
         # --- App-wide variables ---
         self.snowflake_conn = None
@@ -313,26 +312,33 @@ class ConnectionLauncher(tk.Tk):
         )
     
     def launch_main_app(self):
-        # 1. tell P01 what drive/folder the user picked
+        """
+        Called when the user clicks 'Finish & Launch App'.
+        This method finalizes setup and triggers the external callback
+        (provided at runtime by the main application entry point).
+        """
+        if not hasattr(self, "on_launch_callback") or not self.on_launch_callback:
+            messagebox.showerror(
+                "Missing Launch Callback",
+                "No external launch callback was provided to the ConnectionLauncher."
+            )
+            return
+
+        # 1️⃣ Tell P01 what drive/folder was selected
         if self.upload_method.get() == "local":
             initialise_provider_paths(self.local_gdrive_path.get())
-        else:
-            # if you ever support API-based path roots, you could map differently here
-            pass
 
-        # 2. hide this window
+        # 2️⃣ Hide the launcher before launching the project app
         self.withdraw()
 
-        # 3. launch main GUI and pass objects around
-        main_app = DWHOrdersToCashGUI(
+        # 3️⃣ Trigger external project launcher
+        self.on_launch_callback(
             parent=self,
             snowflake_conn=self.snowflake_conn,
             gdrive_service=self.gdrive_service,
             upload_method=self.upload_method.get(),
-            local_path=self.local_gdrive_path.get()
+            local_path=self.local_gdrive_path.get(),
         )
-        print("Launcher: MainApplicationWindow is now running.")
-
 
     # ==================================================
     # THREADING & BACKGROUND TASKS
@@ -407,3 +413,7 @@ if __name__ == "__main__":
     print("Launching Initial Connection Launcher...")
     app = ConnectionLauncher()
     app.mainloop()
+
+# ====================================================================================================
+# END OF FILE — DO NOT MODIFY (LOCKED)
+# ====================================================================================================
